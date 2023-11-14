@@ -1,0 +1,35 @@
+= Validation Script
+
+== Settings
+
+Following environment variables can be set to configure validation script
+
+* `max_workers` - Number of the concurrent Ansible Runner processes. Default: 2.
+* `host` - Bind socket to this host. Default: `127.0.0.1`.
+* `port` - Bind to a socket with this port. Default: 8000.
+* `log_level` - Set the log level. Options are `critical`, `error`, `warning`, `info`, `debug`, `trace`. Default: `info`.
+* `reload` - Enable auto-reload when code was changed. This option should not be used in production due to additional resources consumption. Default: False.
+* `base_dir` - Base directory for the `scripts_path` and `artifacts_path`. Default: Absolute path to `main.py`.
+* `scripts_path` - Ansible Runner input directory. Default: `<base_dir>/scripts`
+* `artifacts_path` - Ansible Runner artifacts directory. Deafault: `<base_dir>/artefacts`
+
+model_config = SettingsConfigDict(env_file=f'{base_dir}/.env')
+
+
+== Running locally
+
+
+== Building and running in container
+
+. Build container
++
+----
+$ podman build -t validation-script
+----
+
+. Run
++
+----
+$ podman run --rm -p 8080:80 -v ./scripts/:/app/scripts:ro validation-script
+----
+
