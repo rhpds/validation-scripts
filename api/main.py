@@ -87,8 +87,13 @@ def job(runner):
     logger.info('Job with ID: %s finished', runner.config.ident)
 
 
-@app.post("/api/{step}/{task}", status_code=HTTPStatus.ACCEPTED)
-async def run_task(step: str, task: str):
+@app.post("/api/{module}/{stage}", status_code=HTTPStatus.ACCEPTED)
+async def run_task(module: str, stage: str):
+    extravars = {
+        'module_dir': module,
+        'module_stage': stage,
+    }
+
     '''
     Configure new Ansible Runner and add it to the
     executor queue
@@ -96,7 +101,8 @@ async def run_task(step: str, task: str):
     rc = RunnerConfig(
         private_data_dir=f'{settings.base_dir}/{settings.scripts_path}',
         artifact_dir=f'{settings.base_dir}/{settings.artifacts_path}',
-        playbook=step + '/' + task + '.yml',
+        extravars=extravars,
+        playbook='main.yml',
         quiet=True,
     )
 

@@ -1,0 +1,41 @@
+---
+- name: Demo Playbook for the ansible-runner API
+  hosts: all
+  gather_facts: false
+  become: false
+  vars:
+
+  tasks:
+    - name: Check if module_dir is defined
+      ansible.builtin.fail:
+        msg: "module_dir not defined"
+      when: module_dir is not defined
+
+    - name: Check if module_stage is defined
+      ansible.builtin.fail:
+        msg: "module_stage not defined"
+      when: module_stage is not defined
+
+    - name: Simple debug task
+      ansible.builtin.debug:
+        msg: "Hello Runner"
+
+    - name: Check if module_01/setup.sh exists
+      ansible.builtin.stat:
+        path: "./{{ module_dir }}/{{ module_stage }}.sh"
+      register: r_script_test
+
+    - name: Execute setup.sh if it exists
+      when: r_script_test.stat.exists
+      command: "bash ./{{ module_dir }}/{{ module_stage }}.sh"
+      register: r_result
+
+    # - name: Write script result to file
+    #   ansible.builtin.copy:
+    #     content: "{{ r_result.stdout }}"
+    #     dest: "./{{ module_dir }}/{{ module_stage }}.out"
+    #   when: r_result is defined
+
+    - name: Output script result
+      ansible.builtin.debug:
+        var: r_result
