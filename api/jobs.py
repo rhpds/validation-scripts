@@ -1,6 +1,8 @@
 
 import sys
 import logging
+import uuid
+import json
 from ansible_runner import Runner, RunnerConfig
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -12,6 +14,12 @@ this = sys.modules[__name__]
 this.executor = None
 
 logger = logging.getLogger('uvicorn')
+
+
+class JobInfo:
+    def __init__(self, ansible_job_id, status):
+        self.ansible_job_id = ansible_job_id
+        self.status = status
 
 
 def init():
@@ -46,6 +54,11 @@ def job(runner):
 
 
 def create_job(module, stage):
+    '''
+    Create and schedule new ansible job
+    '''
+    job_id = uuid.uuid4()
+
     extravars = {
         'module_dir': module,
         'module_stage': stage,
@@ -64,17 +77,36 @@ def create_job(module, stage):
 
     this.executor.submit(job, Runner(config=rc))
 
-    logger.info('Job with ID: %s scheduled', rc.ident)
-    return rc.ident
+    job_info = JobInfo(rc.ident, 'scheduled')
+    job_info_file = Path(
+        f'{settings.base_dir}/'
+        f'{settings.jobs_path}/'
+        f'{job_id}/job_info.json'
+    )
+    job_info_file.parent.mkdir(parents=True, exist_ok=True)
+    job_info_file.write_text(json.dumps(job_info, indent=4, default=vars))
+
+    logger.info('Job with ID: %s scheduled', job_id)
+    return job_id
 
 
 def get_job_status(job_id):
+    '''
+    Get job status
+    '''
+    job_info = json.loads(
+        Path(
+            f'{settings.base_dir}/'
+            f'{settings.jobs_path}/'
+            f'{str(job_id)}/job_info.json'
+        ).read_text()
+    )
+
     status = 'unavailable'
-    str_uid = str(job_id)
     status_file = (
         f'{settings.base_dir}/'
         f'{settings.artifacts_path}/'
-        f'{str_uid}/status'
+        f'{job_info["ansible_job_id"]}/status'
     )
 
     if Path(status_file).is_file():

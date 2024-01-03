@@ -33,7 +33,7 @@
     # - name: Write script result to file
     #   ansible.builtin.copy:
     #     content: "{{ r_result.stdout }}"
-    #     dest: "./{{ module_dir }}/{{ module_stage }}.out"
+    #     dest: "./{{ output_dir }}/script.out"
     #   when: r_result is defined
 
     - name: Output script result
