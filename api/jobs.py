@@ -44,7 +44,7 @@ def shutdown():
     logger.info('Shutdown thread pool')
 
 
-def job(runner):
+def worker_func(runner):
     '''
     Start Ansible Runner
     '''
@@ -62,6 +62,11 @@ def create_job(module, stage):
     extravars = {
         'module_dir': module,
         'module_stage': stage,
+        'job_info_dir': (
+            f'{settings.base_dir}/'
+            f'{settings.jobs_path}/'
+            f'{job_id}'
+        )
     }
 
     rc = RunnerConfig(
@@ -75,7 +80,7 @@ def create_job(module, stage):
     # TODO: Handle ConfigurationError exception
     rc.prepare()
 
-    this.executor.submit(job, Runner(config=rc))
+    this.executor.submit(worker_func, Runner(config=rc))
 
     job_info = JobInfo(rc.ident, 'scheduled')
     job_info_file = Path(

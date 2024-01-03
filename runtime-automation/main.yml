@@ -30,11 +30,11 @@
       command: "bash ./{{ module_dir }}/{{ module_stage }}.sh"
       register: r_result
 
-    # - name: Write script result to file
-    #   ansible.builtin.copy:
-    #     content: "{{ r_result.stdout }}"
-    #     dest: "./{{ output_dir }}/script.out"
-    #   when: r_result is defined
+    - name: Write script result to file
+      ansible.builtin.copy:
+        content: "{{ r_result.stdout }}"
+        dest: "{{ job_info_dir }}/script.out"
+      when: r_result is defined and job_info_dir is defined
 
     - name: Output script result
       ansible.builtin.debug:
