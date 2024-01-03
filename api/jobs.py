@@ -44,13 +44,24 @@ def shutdown():
     logger.info('Shutdown thread pool')
 
 
-def worker_func(runner):
+def worker_func(runner, job_id):
     '''
     Start Ansible Runner
     '''
-    runner.run()  # TODO: handle errors
+    job_info_file = Path(
+        f'{settings.base_dir}/'
+        f'{settings.jobs_path}/'
+        f'{job_id}/job_info.json'
+    )
 
-    logger.info('Job with ID: %s finished', runner.config.ident)
+    status, _ = runner.run()  # TODO: handle errors
+
+    job_info = json.loads(job_info_file.read_text())
+    job_info['status'] = status
+    job_info_file.unlink(missing_ok=True)
+    job_info_file.write_text(json.dumps(job_info, indent=4))
+
+    logger.info('Job with ID: %s finished', job_id)
 
 
 def create_job(module, stage):
@@ -80,7 +91,7 @@ def create_job(module, stage):
     # TODO: Handle ConfigurationError exception
     rc.prepare()
 
-    this.executor.submit(worker_func, Runner(config=rc))
+    this.executor.submit(worker_func, Runner(config=rc), str(job_id))
 
     job_info = JobInfo(rc.ident, 'scheduled')
     job_info_file = Path(
@@ -99,23 +110,29 @@ def get_job_status(job_id):
     '''
     Get job status
     '''
-    job_info = json.loads(
-        Path(
-            f'{settings.base_dir}/'
-            f'{settings.jobs_path}/'
-            f'{str(job_id)}/job_info.json'
-        ).read_text()
-    )
-
-    status = 'unavailable'
-    status_file = (
+    job_info_file = Path(
         f'{settings.base_dir}/'
-        f'{settings.artifacts_path}/'
-        f'{job_info["ansible_job_id"]}/status'
+        f'{settings.jobs_path}/'
+        f'{str(job_id)}/job_info.json'
     )
 
-    if Path(status_file).is_file():
-        with open(file=status_file, mode='r', encoding='utf-8') as file:
-            status = file.read().rstrip()
+    job_info = json.loads(job_info_file.read_text())
 
-    return status
+    return job_info['status']
+
+
+def get_job_output(job_id):
+    '''
+    Get job output
+    '''
+    job_output_file = Path(
+        f'{settings.base_dir}/'
+        f'{settings.jobs_path}/'
+        f'{str(job_id)}/script.out'
+    )
+
+    job_output = ''
+    if job_output_file.exists():
+        job_output = job_output_file.read_text()
+
+    return job_output

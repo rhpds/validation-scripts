@@ -61,8 +61,9 @@ async def get_job(uid: UUID):
     Get job status
     '''
     status = jobs.get_job_status(uid)
+    output = jobs.get_job_output(uid)
 
-    return {'Status': status}
+    return {'Status': status, 'Output': output}
 
 
 if __name__ == '__main__':
