@@ -30,6 +30,10 @@
       command: "bash ./{{ module_dir }}/{{ module_stage }}.sh"
       register: r_result
 
+    - name: Pause for 10 seconds to imitate long running task
+      ansible.builtin.pause:
+        seconds: 30
+
     - name: Write script result to file
       ansible.builtin.copy:
         content: "{{ r_result.stdout }}"

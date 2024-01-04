@@ -44,9 +44,9 @@ def shutdown():
     logger.info('Shutdown thread pool')
 
 
-def worker_func(runner, job_id):
+def update_job_status(job_id, status):
     '''
-    Start Ansible Runner
+    Update job status
     '''
     job_info_file = Path(
         f'{settings.base_dir}/'
@@ -54,12 +54,20 @@ def worker_func(runner, job_id):
         f'{job_id}/job_info.json'
     )
 
-    status, _ = runner.run()  # TODO: handle errors
-
     job_info = json.loads(job_info_file.read_text())
     job_info['status'] = status
-    job_info_file.unlink(missing_ok=True)
     job_info_file.write_text(json.dumps(job_info, indent=4))
+
+
+def worker_func(runner, job_id):
+    '''
+    Start Ansible Runner
+    '''
+    update_job_status(job_id, "running")
+
+    status, _ = runner.run()  # TODO: handle errors
+
+    update_job_status(job_id, status)
 
     logger.info('Job with ID: %s finished', job_id)
 
@@ -91,9 +99,8 @@ def create_job(module, stage):
     # TODO: Handle ConfigurationError exception
     rc.prepare()
 
-    this.executor.submit(worker_func, Runner(config=rc), str(job_id))
-
     job_info = JobInfo(rc.ident, 'scheduled')
+
     job_info_file = Path(
         f'{settings.base_dir}/'
         f'{settings.jobs_path}/'
@@ -102,6 +109,7 @@ def create_job(module, stage):
     job_info_file.parent.mkdir(parents=True, exist_ok=True)
     job_info_file.write_text(json.dumps(job_info, indent=4, default=vars))
 
+    this.executor.submit(worker_func, Runner(config=rc), str(job_id))
     logger.info('Job with ID: %s scheduled', job_id)
     return job_id
 
