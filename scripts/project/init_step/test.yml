@@ -1,8 +1,0 @@
----
-- hosts: all
-  tasks:
-    - debug: msg="Init Step Test!"
-
-    - name: Pause for 10 seconds to imitate long running task
-      ansible.builtin.pause:
-        seconds: 10

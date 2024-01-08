@@ -10,13 +10,33 @@ Following environment variables can be set to configure validation script
 * `log_level` - Set the log level. Options are `critical`, `error`, `warning`, `info`, `debug`, `trace`. Default: `info`.
 * `reload` - Enable auto-reload when code was changed. This option should not be used in production due to additional resources consumption. Default: False.
 * `base_dir` - Base directory for the `scripts_path` and `artifacts_path`. Default: Absolute path to `main.py`.
-* `scripts_path` - Ansible Runner input directory. Default: `<base_dir>/scripts`
+* `scripts_path` - Ansible Runner input directory. Default: `<base_dir>/runtime-automation`
 * `artifacts_path` - Ansible Runner artifacts directory. Deafault: `<base_dir>/artefacts`
+* 'jobs_path' - Validation scripts jobs data directory. Default: `<base_dir>/jobs`
 
 model_config = SettingsConfigDict(env_file=f'{base_dir}/.env')
 
 
 == Running locally
+
+Run the following command to start the validation script locally:
+----
+$ cd api
+$ python3 main.py
+----
+
+[NOTE:]
+====
+The `.env` file can be used to set the environment variables.
+
+Example:
+----
+BASE_DIR=/home/user/validation-scripts
+SCRIPTS_PATH=runtime-automation
+RELOAD=True
+----
+
+====
 
 
 == Building and running in container
@@ -30,6 +50,6 @@ $ podman build -t validation-script
 . Run
 +
 ----
-$ podman run --rm -p 8080:80 -v ./scripts/:/app/scripts:ro validation-script
+$ podman run --rm -p 8080:80 -v ./runtime-automation/:/app/runtime-automation:ro,Z validation-script
 ----
 
