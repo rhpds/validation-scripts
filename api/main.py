@@ -7,7 +7,7 @@ from http import HTTPStatus
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 import settings
 import jobs
@@ -61,6 +61,11 @@ async def get_job(uid: UUID):
     Get job status
     '''
     status = jobs.get_job_status(uid)
+    if not status:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f'Job {str(uid)} not found'
+            )
     output = jobs.get_job_output(uid)
 
     return {'Status': status, 'Output': output}

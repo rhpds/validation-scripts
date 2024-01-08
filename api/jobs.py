@@ -124,9 +124,12 @@ def get_job_status(job_id):
         f'{str(job_id)}/job_info.json'
     )
 
-    job_info = json.loads(job_info_file.read_text())
+    status = ''
+    if job_info_file.exists(): 
+        job_info = json.loads(job_info_file.read_text())
+        status = job_info['status']
 
-    return job_info['status']
+    return status
 
 
 def get_job_output(job_id):
