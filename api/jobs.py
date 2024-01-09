@@ -5,6 +5,7 @@ import uuid
 import json
 from ansible_runner import Runner, RunnerConfig
 from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 from pathlib import Path
 
 import settings
@@ -15,11 +16,28 @@ this.executor = None
 
 logger = logging.getLogger('uvicorn')
 
+jobs = {}
+
 
 class JobInfo:
     def __init__(self, ansible_job_id, status):
         self.ansible_job_id = ansible_job_id
         self.status = status
+        self.lock = Lock()
+
+    def set_status(self, status):
+        with self.lock:
+            self.status = status
+
+    def get_status(self):
+        status = ''
+        with self.lock:
+            status = self.status
+
+        return status
+
+    def get_ansible_job_id(self):
+        return self.ansible_job_id
 
 
 def init():
@@ -44,30 +62,33 @@ def shutdown():
     logger.info('Shutdown thread pool')
 
 
-def update_job_status(job_id, status):
-    '''
-    Update job status
-    '''
-    job_info_file = Path(
-        f'{settings.base_dir}/'
-        f'{settings.jobs_path}/'
-        f'{job_id}/job_info.json'
-    )
-
-    job_info = json.loads(job_info_file.read_text())
-    job_info['status'] = status
-    job_info_file.write_text(json.dumps(job_info, indent=4))
-
-
 def worker_func(runner, job_id):
     '''
     Start Ansible Runner
     '''
-    update_job_status(job_id, "running")
+    if job_id in jobs:
+        jobs[job_id].set_status('running')
 
     status, _ = runner.run()  # TODO: handle errors
 
-    update_job_status(job_id, status)
+    if job_id in jobs:
+        jobs[job_id].set_status(status)
+
+    job_info_file = Path(
+         f'{settings.base_dir}/'
+         f'{settings.jobs_path}/'
+         f'{str(job_id)}/ansible_job.json'
+    )
+    job_info_file.parent.mkdir(parents=True, exist_ok=True)
+    job_info_file.write_text(
+        json.dumps(
+            {
+                'ansible_job_id': jobs[job_id].get_ansible_job_id(),
+                'status': status
+            },
+            indent=4
+        )
+    )
 
     logger.info('Job with ID: %s finished', job_id)
 
@@ -100,6 +121,9 @@ def create_job(module, stage):
     rc.prepare()
 
     job_info = JobInfo(rc.ident, 'scheduled')
+    job_info.set_status('scheduled')
+
+    jobs[job_id] = job_info
 
     job_info_file = Path(
         f'{settings.base_dir}/'
@@ -107,9 +131,8 @@ def create_job(module, stage):
         f'{job_id}/job_info.json'
     )
     job_info_file.parent.mkdir(parents=True, exist_ok=True)
-    job_info_file.write_text(json.dumps(job_info, indent=4, default=vars))
 
-    this.executor.submit(worker_func, Runner(config=rc), str(job_id))
+    this.executor.submit(worker_func, Runner(config=rc), job_id)
     logger.info('Job with ID: %s scheduled', job_id)
     return job_id
 
@@ -118,16 +141,10 @@ def get_job_status(job_id):
     '''
     Get job status
     '''
-    job_info_file = Path(
-        f'{settings.base_dir}/'
-        f'{settings.jobs_path}/'
-        f'{str(job_id)}/job_info.json'
-    )
-
     status = ''
-    if job_info_file.exists(): 
-        job_info = json.loads(job_info_file.read_text())
-        status = job_info['status']
+
+    if job_id in jobs:
+        status = jobs[job_id].get_status()
 
     return status
 
