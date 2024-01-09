@@ -1,44 +1,16 @@
 '''
 Validation Scripts API
 '''
-import os
 import logging
 from uuid import UUID
 from http import HTTPStatus
-from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from ansible_runner import Runner, RunnerConfig
+from fastapi import FastAPI, HTTPException
 
-
-class Settings(BaseSettings):
-    '''
-    Build configuration settings using environment variables
-    or .env file
-    '''
-    # Number of workers
-    max_workers: int = 2
-
-    # Web server details
-    host: str = '127.0.0.1'
-    port: int = 8000
-    log_level: str = 'info'
-    reload: bool = False
-
-    # Path to Ansible playbooks and Artifacts store
-    base_dir: str = os.path.dirname(os.path.abspath(__file__))
-    scripts_path: str = 'scripts'
-    artifacts_path: str = 'artifacts'
-
-    # Use .env file
-    model_config = SettingsConfigDict(env_file=f'{base_dir}/.env')
-
-
-settings = Settings()
+import settings
+import jobs
 
 logger = logging.getLogger('uvicorn')
 
@@ -64,49 +36,23 @@ async def lifespan(application: FastAPI):
             'in production environment'
         )
 
-    # Create ThreadPoolExecutor that will be used for
-    # running queued ansible_runners
-    application.executor = ThreadPoolExecutor(max_workers=settings.max_workers)
-    logger.info('Created thread pool with %d workers', settings.max_workers)
+    jobs.init()
+
     yield
-    # Shutdown ThreadPoolExecutor after application is finished
-    # all active ansible_runners will be finished gracefully while non-active
-    # will be canceled
-    application.executor.shutdown(cancel_futures=True)
+
+    jobs.shutdown()
 
 app = FastAPI(lifespan=lifespan)
-app.executor = None
 
 
-def job(runner):
+@app.post("/api/{module}/{stage}", status_code=HTTPStatus.ACCEPTED)
+async def run_task(module: str, stage: str):
     '''
-    Start Ansible Runner
+    Create and schedule new job
     '''
-    runner.run()  # TODO: handle errors
+    job_id = jobs.create_job(module, stage)
 
-    logger.info('Job with ID: %s finished', runner.config.ident)
-
-
-@app.post("/api/{step}/{task}", status_code=HTTPStatus.ACCEPTED)
-async def run_task(step: str, task: str):
-    '''
-    Configure new Ansible Runner and add it to the
-    executor queue
-    '''
-    rc = RunnerConfig(
-        private_data_dir=f'{settings.base_dir}/{settings.scripts_path}',
-        artifact_dir=f'{settings.base_dir}/{settings.artifacts_path}',
-        playbook=step + '/' + task + '.yml',
-        quiet=True,
-    )
-
-    # TODO: Handle ConfigurationError exception
-    rc.prepare()
-
-    app.executor.submit(job, Runner(config=rc))
-
-    logger.info('Job with ID: %s scheduled', rc.ident)
-    return {'Job_id': rc.ident}
+    return {'Job_id': job_id}
 
 
 @app.get("/api/job/{uid}")
@@ -114,15 +60,15 @@ async def get_job(uid: UUID):
     '''
     Get job status
     '''
-    status = 'unavailable'
-    str_uid = str(uid)
-    status_file = f'{settings.base_dir}/{settings.artifacts_path}/{str_uid}/status'
+    status = jobs.get_job_status(uid)
+    if not status:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f'Job {str(uid)} not found'
+            )
+    output = jobs.get_job_output(uid)
 
-    if Path(status_file).is_file():
-        with open(file=status_file, mode='r', encoding='utf-8') as file:
-            status = file.read().rstrip()
-
-    return {'Status': status}
+    return {'Status': status, 'Output': output}
 
 
 if __name__ == '__main__':
