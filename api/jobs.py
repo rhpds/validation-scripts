@@ -69,7 +69,7 @@ def worker_func(runner, job_id):
     if job_id in jobs:
         jobs[job_id].set_status('running')
 
-    status, _ = runner.run()  # TODO: handle errors
+    status, rc = runner.run()
 
     if job_id in jobs:
         jobs[job_id].set_status(status)
@@ -84,7 +84,8 @@ def worker_func(runner, job_id):
         json.dumps(
             {
                 'ansible_job_id': jobs[job_id].get_ansible_job_id(),
-                'status': status
+                'status': status,
+                'return_code': rc
             },
             indent=4
         )

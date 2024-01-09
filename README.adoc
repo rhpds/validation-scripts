@@ -44,7 +44,7 @@ RELOAD=True
 . Build container
 +
 ----
-$ podman build -t validation-script
+$ podman build -t validation-script .
 ----
 
 . Run
