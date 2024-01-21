@@ -13,6 +13,7 @@ host: str = os.getenv('HOST', '127.0.0.1')
 port: int = int(os.getenv('PORT', 8000))
 log_level: str = os.getenv('LOG_LEVEL', 'info')
 reload: bool = bool(os.getenv('RELOAD', False))
+root_path: str = os.getenv('ROOT_PATH', '/')
 
 # Path to Ansible playbooks and Artifacts store)
 base_dir: str = os.getenv('BASE_DIR', '/app')

@@ -30,6 +30,11 @@ async def lifespan(application: FastAPI):
         f'{settings.base_dir}/{settings.scripts_path}'
     )
 
+    logger.info(
+        'Root path: %s',
+        settings.root_path
+    )
+
     if settings.reload:
         logger.warning(
             'Reloader should\'t not be used'
@@ -42,7 +47,10 @@ async def lifespan(application: FastAPI):
 
     jobs.shutdown()
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    lifespan=lifespan,
+    root_path=settings.root_path
+)
 
 
 @app.post("/api/{module}/{stage}", status_code=HTTPStatus.ACCEPTED)
@@ -65,7 +73,7 @@ async def get_job(uid: UUID):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail=f'Job {str(uid)} not found'
-            )
+        )
     output = jobs.get_job_output(uid)
 
     return {'Status': status, 'Output': output}
