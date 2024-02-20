@@ -60,6 +60,12 @@ async def run_task(module: str, stage: str):
     '''
     job_id = jobs.create_job(module, stage)
 
+    if job_id is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f'Job {module}/{stage} not found'
+        )
+
     return {'Job_id': job_id}
 
 
