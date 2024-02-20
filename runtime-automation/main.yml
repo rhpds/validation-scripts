@@ -16,10 +16,6 @@
         msg: "module_stage not defined"
       when: module_stage is not defined
 
-    - name: Simple debug task
-      ansible.builtin.debug:
-        msg: "Hello Runner"
-
     - name: Check if module_01/setup.sh exists
       ansible.builtin.stat:
         path: "./{{ module_dir }}/{{ module_stage }}.sh"
@@ -28,11 +24,12 @@
     - name: Execute setup.sh if it exists
       when: r_script_test.stat.exists
       command: "bash ./{{ module_dir }}/{{ module_stage }}.sh"
+      ignore_errors: true
       register: r_result
 
-    - name: Pause for 10 seconds to imitate long running task
-      ansible.builtin.pause:
-        seconds: 30
+    # - name: Pause for 10 seconds to imitate long running task
+    #   ansible.builtin.pause:
+    #     seconds: 30
 
     - name: Write script result to file
       ansible.builtin.copy:
