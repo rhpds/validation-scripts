@@ -40,3 +40,8 @@
     - name: Output script result
       ansible.builtin.debug:
         var: r_result
+
+    - name: Fail if stage was failed
+      ansible.builtin.fail:
+        msg: "Stage failed"
+      when: r_result.rc != 0
