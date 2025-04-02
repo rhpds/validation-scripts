@@ -5,6 +5,8 @@ USER root
 RUN chown -R ${USER_UID}:0 /app
 USER ${USER_UID}
 
+RUN dnf install -y sshpass && dnf clean all
+
 COPY ./requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
