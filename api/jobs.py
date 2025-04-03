@@ -85,7 +85,9 @@ def worker_func(runner, job_id):
             {
                 'ansible_job_id': jobs[job_id].get_ansible_job_id(),
                 'status': status,
-                'return_code': rc
+                'return_code': rc,
+                'stdout': runner.stdout.read(),
+                'stderr': runner.stderr.read()
             },
             indent=4
         )
