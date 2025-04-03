@@ -111,7 +111,7 @@ def create_job(module, stage):
         return None
 
     extravars = {
-        'module_dir': module,
+        'module_directory': module,
         'module_stage': stage,
         'job_info_dir': (
             f'{settings.base_dir}/'

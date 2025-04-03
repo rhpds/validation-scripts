@@ -1,7 +1,7 @@
-[local]
-localhost
+[host]
+openssh-server:2222
 
-[local:vars]
-ansible_connection = local
-
-
+[host:vars]
+ansible_connection = ssh
+ansible_user=lab-user
+ansible_ssh_pass=password
