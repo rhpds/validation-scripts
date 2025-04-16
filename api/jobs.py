@@ -102,15 +102,15 @@ def create_job(module, stage):
     '''
     job_id = uuid.uuid4()
 
-    stage_file = Path(
-        f'{settings.base_dir}/'
-        f'{settings.scripts_path}/'
-        f'{module}/'
-        f'{stage}.sh'
-    )
-    if not stage_file.exists():
-        logger.error('Stage file not found: %s', stage_file)
-        return None
+    #stage_file = Path(
+    #    f'{settings.base_dir}/'
+    #    f'{settings.scripts_path}/'
+    #    f'{module}/'
+    #    f'{stage}.sh'
+    #)
+    #if not stage_file.exists():
+    #    logger.error('Stage file not found: %s', stage_file)
+    #    return None
 
     extravars = {
         'module_dir': module,
