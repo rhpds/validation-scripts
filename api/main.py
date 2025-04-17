@@ -84,26 +84,55 @@ async def run_task(module: str, stage: str):
     Create and schedule new job
     '''
     logger.info('func: run_task, module=%s, stage=%s', module, stage)
-    
-    if not (module in MODULE_CONFIG and stage in MODULE_CONFIG["index"]):
+
+    # Validate module and stage existence in the loaded config
+    if not (module in MODULE_CONFIG and stage in MODULE_CONFIG.get(module, {})):
+        logger.error(f"Module '{module}' or stage '{stage}' not found in MODULE_CONFIG.")
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
-            detail=f'Job {module}/{stage} not found'
+            detail=f'Job configuration for {module}/{stage} not found'
         )
-    
-    for scripts in MODULE_CONFIG[module][stage]:
-        logger.info('func: run_task, hostname=%s, filename=%s', scripts['hostname'], scripts['path'])
-        
-        job_id = jobs.create_job(module, stage, scripts['hostname'], scripts['path'])
 
-        if job_id is None:
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail=f'Job {module}/{stage} not found'
-            )
+    # Build the list of script executions for this module/stage
+    script_executions = []
+    try:
+        for script_info in MODULE_CONFIG[module][stage]:
+            # Ensure required keys exist
+            if 'hostname' in script_info and 'path' in script_info:
+                 script_executions.append({
+                    'module_dir': module, # Pass module name for context within playbook
+                    'filename': script_info['path'],
+                    'target_host': script_info['hostname']
+                 })
+            else:
+                 logger.warning(f"Skipping script entry due to missing 'hostname' or 'path': {script_info}")
+    except KeyError:
+         logger.error(f"Error accessing MODULE_CONFIG for {module}/{stage}. Structure might be unexpected.")
+         raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=f'Internal configuration error for {module}/{stage}'
+         )
 
-        logger.info('func: run_task, hostname=%s, filename=%s, job_id=%s', scripts['hostname'], scripts['path'], job_id)
+    if not script_executions:
+         logger.warning(f"No valid scripts found to execute for {module}/{stage}.")
+         raise HTTPException(
+             status_code=HTTPStatus.NOT_FOUND,
+             detail=f'No scripts found to execute for job {module}/{stage}'
+         )
 
+    # Call the new function ONCE to create a single job for all scripts
+    logger.info(f"Creating multi-script job for {module}/{stage} with {len(script_executions)} scripts.")
+    job_id = jobs.create_multi_script_job(module, stage, script_executions)
+
+    if job_id is None:
+        logger.error(f"Failed to create multi-script job for {module}/{stage}.")
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=f'Failed to create job for {module}/{stage}'
+        )
+
+    logger.info('func: run_task, module=%s, stage=%s, job_id=%s', module, stage, job_id)
+    # Return the single job ID associated with this multi-script execution
     return {'Job_id': job_id}
 
 
@@ -123,7 +152,6 @@ async def get_job(uid: UUID):
     output = jobs.get_job_output(uid)
 
     return {'Status': status, 'Output': output}
-
 
 
 @app.get("/api/config", response_model=Dict[str, List[str]])

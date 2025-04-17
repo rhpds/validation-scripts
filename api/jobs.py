@@ -156,6 +156,82 @@ def create_job(module, stage, hostname, filename):
     return job_id
 
 
+def create_multi_script_job(module: str, stage: str, script_executions: list):
+    '''
+    Create and schedule a single new ansible job to run multiple scripts.
+    '''
+    job_id = uuid.uuid4()
+
+    # Extract unique hostnames and build inventory content
+    hosts = {item['target_host'] for item in script_executions if 'target_host' in item}
+    inventory_content = "[targets]\n"
+    for hostname in hosts:
+        # Assuming standard connection details, adjust if needed
+        inventory_content += f"{hostname} ansible_user=lab-user ansible_password=password ansible_port=2222\n"
+
+    # Write inventory to a temporary file
+    inventory_path = None
+    try:
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix=".ini") as inv_file:
+            inv_file.write(inventory_content)
+            inventory_path = inv_file.name
+            logger.debug(f"Temporary inventory created at: {inventory_path}")
+    except Exception as e:
+        logger.error(f"Failed to create temporary inventory file: {e}")
+        # Clean up if file was partially created?
+        if inventory_path and os.path.exists(inventory_path):
+             os.unlink(inventory_path)
+        return None # Indicate failure
+
+    # Define extravars for the new playbook
+    extravars = {
+        'module_dir': module,
+        'module_stage': stage,
+        'script_executions': script_executions, # Pass the list of scripts
+        'job_info_dir': (
+            f'{settings.base_dir}/'
+            f'{settings.jobs_path}/'
+            f'{job_id}'
+        ),
+    }
+
+    rc = None
+    try:
+        rc = RunnerConfig(
+            private_data_dir=f'{settings.base_dir}/{settings.scripts_path}',
+            artifact_dir=f'{settings.base_dir}/{settings.artifacts_path}',
+            inventory=inventory_path,
+            extravars=extravars,
+            playbook=f'{settings.base_dir}/playbook_main.yml',
+            quiet=True, # Keep quiet=True unless debugging needed
+        )
+        rc.prepare()
+    except Exception as e: # Catch potential RunnerConfig errors
+        logger.error(f"Error preparing RunnerConfig for job {job_id}: {e}")
+        # Clean up the temporary inventory file
+        if inventory_path and os.path.exists(inventory_path):
+            os.unlink(inventory_path)
+        return None # Indicate failure
+
+    # Create JobInfo and schedule
+    job_info = JobInfo(rc.ident, 'scheduled')
+    jobs[job_id] = job_info # Store job info before scheduling
+
+    # Create job info directory and file (similar to create_job)
+    job_info_file = Path(
+        f'{settings.base_dir}/'
+        f'{settings.jobs_path}/'
+        f'{job_id}/job_info.json'
+    )
+    job_info_file.parent.mkdir(parents=True, exist_ok=True)
+
+    # Submit the worker function
+    this.executor.submit(worker_func, Runner(config=rc), job_id)
+
+    logger.info('Multi-script job with ID: %s scheduled', job_id)
+    return job_id
+
+
 def get_job_status(job_id):
     '''
     Get job status

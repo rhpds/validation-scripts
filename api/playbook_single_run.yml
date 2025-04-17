@@ -1,0 +1,60 @@
+---
+# This file is included by playbook_main.yml for each script execution
+- name: "Processing script: {{ script_item.filename }} in {{ script_item.module_dir }} on host {{ script_item.target_host }}"
+  block:
+    # Construct the full path relative to the playbook execution directory (private_data_dir)
+    - name: Set script path variable
+      set_fact:
+        full_script_path: "{{ script_base_dir }}/{{ script_item.module_dir }}/{{ script_item.filename }}"
+
+    - name: "Debug script path"
+      ansible.builtin.debug:
+        var: full_script_path
+
+    - name: "Check if {{ full_script_path }} exists locally"
+      ansible.builtin.stat:
+        path: "{{ full_script_path }}"
+      register: r_script_test
+      delegate_to: localhost # Check path on the control node (where ansible-runner runs)
+
+    - name: "Execute {{ script_item.filename }} on {{ script_item.target_host }} if it exists"
+      when: r_script_test.stat.exists
+      ansible.builtin.script: "{{ full_script_path }}" # Pass the full path to the script module
+      register: r_result
+      delegate_to: "{{ script_item.target_host }}" # Delegate script execution to the target host
+
+    - name: "Output script result for {{ script_item.filename }}"
+      ansible.builtin.debug:
+        var: r_result.stdout
+      when: r_result is defined and r_result.stdout is defined and r_result.stdout != ""
+
+    - name: "Write script result for {{ script_item.filename }} to file"
+      ansible.builtin.copy:
+        content: "{{ r_result.stdout | default('') }}" # Add default for safety
+        # Ensure unique filenames or structure if multiple scripts write output
+        dest: "{{ job_info_dir }}/{{ script_item.target_host }}_{{ script_item.filename }}.out"
+      delegate_to: localhost
+      when: r_result is defined and job_info_dir is defined
+
+    # Register failure for this specific script item
+    - name: "Register failure fact for {{ script_item.filename }}"
+      set_fact:
+        script_failed: true
+      when: r_result is defined and r_result.rc != 0
+
+  rescue:
+    - name: "Log execution error for {{ script_item.filename }}" # Task 1: Debug
+      ansible.builtin.debug:
+        msg: "ERROR: An error occurred while processing {{ script_item.filename }} for host {{ script_item.target_host }}. Error: {{ ansible_failed_result }}"
+
+    - name: "Mark script as failed on error for {{ script_item.filename }}" # Task 2: Set Fact
+      set_fact:
+        script_failed: true # Mark as failed on error
+
+  # Always ensure script_failed fact is defined (as false if no failure occurred)
+  always:
+    - name: Ensure script_failed fact is defined
+      set_fact:
+        script_failed: "{{ script_failed | default(false) }}"
+
+# Note: The 'script_failed' fact set here will be accessible in the main playbook's loop results
