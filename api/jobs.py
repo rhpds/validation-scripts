@@ -7,6 +7,10 @@ from ansible_runner import Runner, RunnerConfig
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 from pathlib import Path
+import tempfile
+import yaml
+import os
+
 
 import settings
 
@@ -61,7 +65,6 @@ def shutdown():
     this.executor.shutdown(cancel_futures=True)
     logger.info('Shutdown thread pool')
 
-
 def worker_func(runner, job_id):
     '''
     Start Ansible Runner
@@ -85,7 +88,9 @@ def worker_func(runner, job_id):
             {
                 'ansible_job_id': jobs[job_id].get_ansible_job_id(),
                 'status': status,
-                'return_code': rc
+                'return_code': rc,
+                'stdout': runner.stdout.read(),
+                'stderr': runner.stderr.read()
             },
             indent=4
         )
@@ -94,35 +99,38 @@ def worker_func(runner, job_id):
     logger.info('Job with ID: %s finished', job_id)
 
 
-def create_job(module, stage):
+def create_job(module, stage, hostname, filename):
     '''
     Create and schedule new ansible job
     '''
     job_id = uuid.uuid4()
 
-    stage_file = Path(
-        f'{settings.base_dir}/'
-        f'{settings.scripts_path}/'
-        f'{module}/'
-        f'{stage}.sh'
-    )
-    if not stage_file.exists():
-        logger.error('Stage file not found: %s', stage_file)
-        return None
-
+    # Create a simple inventory with your host
+    inventory_content = f"""
+    [target]
+    {hostname} ansible_user=lab-user ansible_password=password ansible_port=2222
+    """
+    
+    # Write to temp file
+    with tempfile.NamedTemporaryFile(mode='w', delete=False) as inv_file:
+        inv_file.write(inventory_content)
+        inventory_path = inv_file.name
+    
     extravars = {
-        'module_directory': module,
+        'module_dir': module,
         'module_stage': stage,
+        'filename': filename,
         'job_info_dir': (
             f'{settings.base_dir}/'
             f'{settings.jobs_path}/'
             f'{job_id}'
-        )
+        ),
     }
-
+    
     rc = RunnerConfig(
         private_data_dir=f'{settings.base_dir}/{settings.scripts_path}',
         artifact_dir=f'{settings.base_dir}/{settings.artifacts_path}',
+        inventory=inventory_path,
         extravars=extravars,
         playbook='main.yml',
         quiet=True,
