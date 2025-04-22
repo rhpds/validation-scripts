@@ -11,7 +11,7 @@ import tempfile
 import yaml
 import os
 
-
+# Import settings to access global config
 import settings
 
 this = sys.modules[__name__]
@@ -166,8 +166,14 @@ def create_multi_script_job(module: str, stage: str, script_executions: list):
     hosts = {item['target_host'] for item in script_executions if 'target_host' in item}
     inventory_content = "[targets]\n"
     for hostname in hosts:
-        # Assuming standard connection details, adjust if needed
-        inventory_content += f"{hostname} ansible_user=lab-user ansible_password=password ansible_port=2222\n"
+        # Build host line using global settings
+        host_line = f"{hostname} ansible_user={settings.ansible_user} ansible_port={settings.ansible_port}"
+        if settings.auth_method == 'password':
+            # Ensure password is treated as a string literal in the inventory
+            host_line += f" ansible_password='{settings.credential}'"
+        elif settings.auth_method == 'ssh_key':
+            host_line += f" ansible_ssh_private_key_file={settings.credential}"
+        inventory_content += host_line + "\n"
 
     # Write inventory to a temporary file
     inventory_path = None

@@ -4,15 +4,24 @@
 
 Following environment variables can be set to configure validation script
 
-* `max_workers` - Number of the concurrent Ansible Runner processes. Default: 2.
-* `host` - Bind socket to this host. Default: `127.0.0.1`.
-* `port` - Bind to a socket with this port. Default: 8000.
-* `log_level` - Set the log level. Options are `critical`, `error`, `warning`, `info`, `debug`, `trace`. Default: `info`.
-* `reload` - Enable auto-reload when code was changed. This option should not be used in production due to additional resources consumption. Default: False.
-* `base_dir` - Base directory for the `scripts_path` and `artifacts_path`. Default: Absolute path to `main.py`.
-* `scripts_path` - Ansible Runner input directory. Default: `<base_dir>/runtime-automation`
-* `artifacts_path` - Ansible Runner artifacts directory. Deafault: `<base_dir>/artefacts`
-* 'jobs_path' - Validation scripts jobs data directory. Default: `<base_dir>/jobs`
+* `MAX_WORKERS` - Number of the concurrent Ansible Runner processes. Default: 2.
+* `HOST` - Bind socket to this host. Default: `127.0.0.1`.
+* `PORT` - Bind to a socket with this port. Default: 8000.
+* `LOG_LEVEL` - Set the log level. Options are `critical`, `error`, `warning`, `info`, `debug`, `trace`. Default: `info`.
+* `RELOAD` - Enable auto-reload when code was changed. This option should not be used in production due to additional resources consumption. Default: False.
+* `BASE_DIR` - Base directory for the `scripts_path` and `artifacts_path`. Default: Absolute path to `main.py`.
+* `SCRIPTS_PATH` - Ansible Runner input directory. Default: `<base_dir>/runtime-automation`
+* `ARTIFACTS_PATH` - Ansible Runner artifacts directory. Deafault: `<base_dir>/artefacts`
+* `JOBS_PATH` - Validation scripts jobs data directory. Default: `<base_dir>/jobs`
+* `ANSIBLE_USER` - The username for SSH connections to target hosts. Default: `lab-user`.
+* `ANSIBLE_PORT` - The port number for SSH connections. Default: `22`.
+* `ANSIBLE_SSH_PRIVATE_KEY_FILE` - Path to the SSH private key file for key-based authentication. If set, this method is used even if `ANSIBLE_PASSWORD` is also set.
+* `ANSIBLE_PASSWORD` - The password for password-based authentication. Used only if `ANSIBLE_SSH_PRIVATE_KEY_FILE` is *not* set.
+
+[IMPORTANT]
+====
+The service requires authentication configuration to start. You *must* set either `ANSIBLE_SSH_PRIVATE_KEY_FILE` or `ANSIBLE_PASSWORD`.
+====
 
 model_config = SettingsConfigDict(env_file=f'{base_dir}/.env')
 
@@ -52,4 +61,3 @@ $ podman build -t validation-script .
 ----
 $ podman run --rm -p 8080:80 -v ./runtime-automation/:/app/runtime-automation:ro,Z validation-script
 ----
-
