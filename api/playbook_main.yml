@@ -17,32 +17,9 @@
         fail_msg: "Variable 'script_executions' must be defined as a list."
       run_once: true # Only need to check this once
 
-    - name: Initialize failure tracker
-      set_fact:
-        any_script_failed: false
-      run_once: true
-
     - name: Execute each script defined in script_executions
       include_tasks: playbook_single_run.yml # Use include_tasks for better structure
       loop: "{{ script_executions }}"
       loop_control:
         loop_var: script_item # Define the loop variable name
       register: r_included_task_results
-
-    - name: Debug included task results
-      ansible.builtin.debug:
-        var: r_included_task_results
-
-    - name: Check if any included task registered a failure
-      set_fact:
-        any_script_failed: true
-      # Check if the task itself failed OR if our custom 'script_failed' fact was set true
-      when: item.failed | default(false) or (item.skipped is not defined and item.ansible_facts is defined and item.ansible_facts.script_failed is defined and item.ansible_facts.script_failed)
-      loop: "{{ r_included_task_results.results }}"
-      # Run this check even if previous tasks failed in the loop
-      ignore_errors: true 
-
-    - name: Final check for any script failures
-      ansible.builtin.fail:
-        msg: "One or more scripts failed during execution."
-      when: any_script_failed

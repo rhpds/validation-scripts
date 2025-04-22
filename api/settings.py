@@ -5,6 +5,9 @@ from dotenv import load_dotenv
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
+# Debug mode, more verbose logging + ansible job output returned via 'Get Job Status' API response
+debug: bool = bool(os.getenv('DEBUG', False))
+
 # Number of workers
 max_workers: int = int(os.getenv('MAX_WORKERS', 2))
 

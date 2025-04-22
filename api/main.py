@@ -12,6 +12,7 @@ from fastapi.responses import Response
 
 from typing import Dict, Any, List
 import yaml
+import os
 
 import settings
 import jobs
@@ -149,9 +150,12 @@ async def get_job(uid: UUID):
             status_code=HTTPStatus.NOT_FOUND,
             detail=f'Job {str(uid)} not found'
         )
-    output = jobs.get_job_output(uid)
 
-    return {'Status': status, 'Output': output}
+    response = {'Status': status}
+    if os.environ.get("DEBUG") == "true":
+        response['Output'] = jobs.get_job_output(uid)
+
+    return response
 
 
 @app.get("/api/config", response_model=Dict[str, List[str]])
