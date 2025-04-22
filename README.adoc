@@ -1,5 +1,89 @@
 = Validation Script
 
+== Endpoints
+
+=== Run Task
+
+*Method:* `POST`
+*Path:* `/api/{module}/{stage}`
+
+This endpoint creates and schedules a new job to run a task.
+
+*Parameters:*
+
+*   `module` (path): The name of the module to run.
+*   `stage` (path): The stage of the module to run.
+
+*Example Request:*
+
+`POST /api/module-02/setup`
+
+*Response:*
+
+```json
+{
+  "Job_id": "a1b2c3d4-e5f6-7788-9900-aabbccddeeff"
+}
+```
+
+*Response Codes:*
+
+*   `202 Accepted`: The job was successfully created and scheduled.
+*   `404 Not Found`: The module or stage was not found.
+*   `500 Internal Server Error`: Failed to create the job.
+
+=== Get Job Status
+
+*Method:* `GET`
+*Path:* `/api/job/{uid}`
+
+This endpoint retrieves the status of a job.
+
+*Parameters:*
+
+*   `uid` (path): The UUID of the job.
+
+*Example Request:*
+
+`GET /api/job/a1b2c3d4-e5f6-7788-9900-aabbccddeeff`
+
+*Response:*
+
+```json
+{
+  "Status": "successful"
+}
+```
+
+*Response Codes:*
+
+*   `200 OK`: The job status was successfully retrieved.
+*   `404 Not Found`: The job was not found.
+
+=== Get Module Config
+
+*Method:* `GET`
+*Path:* `/api/config`
+
+This endpoint retrieves the module configuration.
+
+*Example Request:*
+
+`GET /api/config`
+
+*Response:*
+
+```yaml
+module-02:
+  - setup
+  - solve
+  - validation
+```
+
+*Response Codes:*
+
+*   `200 OK`: The module configuration was successfully retrieved.
+
 == Settings
 
 Following environment variables can be set to configure validation script
@@ -17,14 +101,12 @@ Following environment variables can be set to configure validation script
 * `ANSIBLE_PORT` - The port number for SSH connections. Default: `22`.
 * `ANSIBLE_SSH_PRIVATE_KEY_FILE` - Path to the SSH private key file for key-based authentication. If set, this method is used even if `ANSIBLE_PASSWORD` is also set.
 * `ANSIBLE_PASSWORD` - The password for password-based authentication. Used only if `ANSIBLE_SSH_PRIVATE_KEY_FILE` is *not* set.
+* `DEBUG` - Enable debug mode. This will print more detailed logs and output. Default: False.
 
 [IMPORTANT]
 ====
 The service requires authentication configuration to start. You *must* set either `ANSIBLE_SSH_PRIVATE_KEY_FILE` or `ANSIBLE_PASSWORD`.
 ====
-
-model_config = SettingsConfigDict(env_file=f'{base_dir}/.env')
-
 
 == Running locally
 
