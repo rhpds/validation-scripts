@@ -160,12 +160,9 @@ async def get_job(uid: UUID):
 
 @app.get("/api/config", response_model=Dict[str, List[str]])
 async def get_module_config():
-    """Get a module directory structure showing only modules and their stages as YAML"""
+    """Get a module directory structure showing only modules and their stages as JSON"""
     module_config = modules.get_module_config_from_directory_structure(MODULE_CONFIG)
-    yaml_content = yaml.dump(module_config, default_flow_style=False, sort_keys=False)
-    
-    # Return YAML response
-    return Response(content=yaml_content, media_type="application/yaml")
+    return module_config
 
 
 if __name__ == '__main__':
