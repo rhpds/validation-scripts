@@ -136,6 +136,7 @@ def create_multi_script_job(module: str, stage: str, script_executions: list):
         'module_dir': module,
         'module_stage': stage,
         'script_executions': script_executions, # Pass the list of scripts
+        'script_base_dir': f'{settings.base_dir}/{settings.scripts_path}',
         'job_info_dir': (
             f'{settings.base_dir}/'
             f'{settings.jobs_path}/'

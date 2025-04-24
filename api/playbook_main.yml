@@ -3,10 +3,6 @@
   hosts: localhost # Run the main logic on localhost to control the loop
   gather_facts: false
   become: false
-  vars:
-    # Base directory for scripts relative to where ansible-runner executes (private_data_dir)
-    # Assuming private_data_dir is set to settings.scripts_path which contains the module dirs
-    script_base_dir: "./runtime-automation" 
 
   tasks:
     - name: Ensure script_executions variable is defined
