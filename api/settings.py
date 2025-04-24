@@ -18,10 +18,10 @@ log_level: str = 'debug' if debug else os.getenv('LOG_LEVEL', 'info')
 reload: bool = bool(os.getenv('RELOAD', False))
 root_path: str = os.getenv('ROOT_PATH', '/')
 
-# Path to Ansible playbooks and Artifacts store)
+# Base directory and paths for scripts, artifacts, and job data
 base_dir: str = os.getenv('BASE_DIR', '/app')
-scripts_path: str = os.getenv('SCRIPTS_PATH', 'runtime-automation')
-artifacts_path: str = os.getenv('ARTIFACTS_PATH', 'artifacts')
+scripts_path: str = os.getenv('SCRIPTS_PATH', 'runtime-automation') # Contains runtime scripts executed by Ansible
+artifacts_path: str = os.getenv('ARTIFACTS_PATH', 'artifacts') # Ansible Runner artifact store
 jobs_path: str = os.getenv('JOBS_PATH', 'jobs')
 
 # Ansible connection details
@@ -37,7 +37,6 @@ credential: str
 if ansible_ssh_private_key_file:
     auth_method = 'ssh_key'
     credential = ansible_ssh_private_key_file
-    # Optional: Add check here if the key file exists os.path.exists(credential)
 elif ansible_password:
     auth_method = 'password'
     credential = ansible_password

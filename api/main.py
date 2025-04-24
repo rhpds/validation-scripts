@@ -82,7 +82,7 @@ app = FastAPI(
 @app.post("/api/{module}/{stage}", status_code=HTTPStatus.ACCEPTED)
 async def run_task(module: str, stage: str):
     '''
-    Create and schedule new job
+    Create and schedule a single job to run scripts for a given module/stage.
     '''
     logger.info('func: run_task, module=%s, stage=%s', module, stage)
 

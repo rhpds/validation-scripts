@@ -2,7 +2,7 @@
 # This file is included by playbook_main.yml for each script execution
 - name: "Processing script: {{ script_item.filename }} in {{ script_item.module_dir }} on host {{ script_item.target_host }}"
   block:
-    # Construct the full path relative to the playbook execution directory (private_data_dir)
+    # Construct the full path
     - name: Set script path variable
       set_fact:
         full_script_path: "{{ script_base_dir }}/{{ script_item.module_dir }}/{{ script_item.filename }}"

@@ -126,7 +126,7 @@ def create_multi_script_job(module: str, stage: str, script_executions: list):
             logger.debug(f"Temporary inventory created at: {inventory_path}")
     except Exception as e:
         logger.error(f"Failed to create temporary inventory file: {e}")
-        # Clean up if file was partially created?
+        # Clean up if file was partially created
         if inventory_path and os.path.exists(inventory_path):
              os.unlink(inventory_path)
         return None # Indicate failure
