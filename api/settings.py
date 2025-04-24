@@ -14,7 +14,7 @@ max_workers: int = int(os.getenv('MAX_WORKERS', 2))
 # Web server details
 host: str = os.getenv('HOST', '127.0.0.1')
 port: int = int(os.getenv('PORT', 8000))
-log_level: str = os.getenv('LOG_LEVEL', 'info')
+log_level: str = 'debug' if debug else os.getenv('LOG_LEVEL', 'info')
 reload: bool = bool(os.getenv('RELOAD', False))
 root_path: str = os.getenv('ROOT_PATH', '/')
 
