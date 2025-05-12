@@ -24,7 +24,9 @@ api_path: str = os.getenv('API_PATH', 'api')
 scripts_path: str = os.getenv('SCRIPTS_PATH', 'runtime-automation') # Contains runtime scripts executed by Ansible
 artifacts_path: str = os.getenv('ARTIFACTS_PATH', 'artifacts') # Ansible Runner artifact store
 jobs_path: str = os.getenv('JOBS_PATH', 'jobs')
-playbooks_path: str = os.getenv('PLAYBOOKS_PATH', 'playbooks')
+ansible_path: str = os.getenv('ANSIBLE_PATH', 'ansible')
+# TODO set main playbook in settings
+# ansible_playbook: str = os.getenv('ANSIBLE_PATH', 'ansible') / 'playbook_main.yml'
 
 # Ansible connection details
 ansible_user: str = os.getenv('ANSIBLE_USER', 'lab-user')

@@ -7,16 +7,20 @@ from fastapi.responses import Response
 from http import HTTPStatus
 from typing import Dict, Any, List
 from uuid import UUID
+from pathlib import Path
 
 import logging
-import os
 import sys
 import uvicorn
-import yaml
 
-import jobs
-import modules
-import settings
+# --- Adjust Python Path to find the 'core' package ---
+PROJECT_ROOT_CLI = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT_CLI)) # Add project root to path
+# --- End path setup ---
+
+from core import settings
+from core import jobs
+from api import modules
 
 logger = logging.getLogger('uvicorn')
 

@@ -10,10 +10,15 @@ RUN dnf install -y sshpass && dnf clean all
 COPY ./requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
-ENV BASE_DIR="/app/api"
+ENV BASE_DIR="/app"
 ENV HOST="0.0.0.0"
 ENV PORT=80
 
-WORKDIR /app/api
 COPY ./api /app/api
+COPY ./cli /app/cli
+COPY ./core /app/core
+COPY ./ansible /app/ansible
+
+WORKDIR /app/api
+
 CMD ["python", "main.py" ]

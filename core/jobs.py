@@ -12,7 +12,7 @@ import yaml
 import os
 
 # Import settings to access global config
-import settings
+from . import settings
 
 this = sys.modules[__name__]
 
@@ -98,9 +98,10 @@ def worker_func(runner, job_id):
 
     logger.info('Job with ID: %s finished', job_id)
 
-def create_multi_script_job(module: str, stage: str, script_executions: list):
+def create_multi_script_job(module: str, stage: str, script_executions: list, custom_script_base_dir: str = None):
     '''
     Create and schedule a single new ansible job to run multiple scripts.
+    If custom_script_base_dir is provided, it overrides the default settings.scripts_path.
     '''
     job_id = uuid.uuid4()
 
@@ -130,13 +131,17 @@ def create_multi_script_job(module: str, stage: str, script_executions: list):
         if inventory_path and os.path.exists(inventory_path):
              os.unlink(inventory_path)
         return None # Indicate failure
+    
+    # Determine the script base directory
+    # If custom_script_base_dir is provided (from CLI), use that. Otherwise, use the default from settings.
+    actual_script_base_dir = custom_script_base_dir if custom_script_base_dir else f'{settings.base_dir}/{settings.scripts_path}'
 
     # Define extravars for the new playbook
     extravars = {
         'module_dir': module,
         'module_stage': stage,
         'script_executions': script_executions, # Pass the list of scripts
-        'script_base_dir': f'{settings.base_dir}/{settings.scripts_path}',
+        'script_base_dir': actual_script_base_dir,
         'job_info_dir': (
             f'{settings.base_dir}/'
             f'{settings.jobs_path}/'
@@ -151,7 +156,7 @@ def create_multi_script_job(module: str, stage: str, script_executions: list):
             artifact_dir=f'{settings.base_dir}/{settings.artifacts_path}',
             inventory=inventory_path,
             extravars=extravars,
-            playbook=f'{settings.base_dir}/{settings.api_path}/playbook_main.yml',
+            playbook=f'{settings.base_dir}/{settings.ansible_path}/playbook_main.yml',
             quiet=True, # Keep quiet=True unless debugging needed
         )
         rc.prepare()
