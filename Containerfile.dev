@@ -1,5 +1,5 @@
 FROM registry.access.redhat.com/ubi9/python-311
-WORKDIR /app/
+WORKDIR /app
 
 ARG WATCHEXEC_VERSION="2.3.0"
 
@@ -18,6 +18,6 @@ ENV BASE_DIR="/app"
 ENV HOST="0.0.0.0"
 ENV PORT=80
 
-COPY ./api /app/
-
+WORKDIR /app/api
+COPY ./api /app/api
 CMD ["watchexec", "-r", "-e", "py", "--", "python", "main.py"]

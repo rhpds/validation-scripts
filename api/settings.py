@@ -20,9 +20,11 @@ root_path: str = os.getenv('ROOT_PATH', '/')
 
 # Base directory and paths for scripts, artifacts, and job data
 base_dir: str = os.getenv('BASE_DIR', '/app')
+api_path: str = os.getenv('API_PATH', 'api')
 scripts_path: str = os.getenv('SCRIPTS_PATH', 'runtime-automation') # Contains runtime scripts executed by Ansible
 artifacts_path: str = os.getenv('ARTIFACTS_PATH', 'artifacts') # Ansible Runner artifact store
 jobs_path: str = os.getenv('JOBS_PATH', 'jobs')
+playbooks_path: str = os.getenv('PLAYBOOKS_PATH', 'playbooks')
 
 # Ansible connection details
 ansible_user: str = os.getenv('ANSIBLE_USER', 'lab-user')

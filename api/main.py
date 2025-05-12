@@ -1,22 +1,22 @@
 '''
 Validation Scripts API
 '''
-import logging
-from uuid import UUID
-from http import HTTPStatus
 from contextlib import asynccontextmanager
-
-import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
-
+from http import HTTPStatus
 from typing import Dict, Any, List
-import yaml
-import os
+from uuid import UUID
 
-import settings
+import logging
+import os
+import sys
+import uvicorn
+import yaml
+
 import jobs
 import modules
+import settings
 
 logger = logging.getLogger('uvicorn')
 
@@ -40,7 +40,7 @@ async def lifespan(application: FastAPI):
     )
 
     logger.info(
-        'Root path: %s',
+        'FastAPI root path: %s',
         settings.root_path
     )
 
@@ -53,20 +53,18 @@ async def lifespan(application: FastAPI):
     global MODULE_CONFIG
     
     # Set the directory path you want to read
-    directory_path = f'{settings.base_dir}/runtime-automation'
+    directory_path = f'{settings.base_dir}/{settings.scripts_path}'
     
     try:
         MODULE_CONFIG = modules.parse_module_directory_structure(directory_path)
-        logger.info(
-            'Module config loaded from: %s',
-            directory_path
-        )
+        logger.info( 'Module config loaded from: %s', directory_path )
+        logger.info( 'Module config: %s', MODULE_CONFIG )
     except Exception as e:
-        logger.error(
-            'Error loading module config: %s, Error: %s',
+        logger.critical(
+            'Fatal error loading module config from: %s. Error: %s. Shutting down.',
             directory_path, str(e)
         )
-        MODULE_CONFIG = {"error": str(e)}
+        sys.exit(1) # Exit the application
 
     jobs.init()
 
@@ -145,14 +143,20 @@ async def get_job(uid: UUID):
     logger.info('GET /api/job/%s', uid)
     
     status = jobs.get_job_status(uid)
-    if not status:
+    if not status: # Handles empty string for not found
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail=f'Job {str(uid)} not found'
         )
 
     response = {'Status': status}
-    if os.environ.get("DEBUG") == "true":
+
+    # Define statuses for which output is typically available and meaningful
+    terminal_statuses = ["successful", "failed", "timeout", "canceled"]
+
+    # Only attempt to get output if debug mode is on AND the job is in a terminal state
+    if settings.debug and status in terminal_statuses:
+        logger.info(f"Job {uid} is in terminal state '{status}' and debug mode is ON. Fetching output.")
         response['Output'] = jobs.get_job_output(uid)
 
     return response

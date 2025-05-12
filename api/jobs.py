@@ -151,7 +151,7 @@ def create_multi_script_job(module: str, stage: str, script_executions: list):
             artifact_dir=f'{settings.base_dir}/{settings.artifacts_path}',
             inventory=inventory_path,
             extravars=extravars,
-            playbook=f'{settings.base_dir}/playbook_main.yml',
+            playbook=f'{settings.base_dir}/{settings.api_path}/playbook_main.yml',
             quiet=True, # Keep quiet=True unless debugging needed
         )
         rc.prepare()
@@ -183,7 +183,52 @@ def create_multi_script_job(module: str, stage: str, script_executions: list):
 
 def get_job_status(job_id):
     '''
-    Get job status
+    Retrieves the status of an Ansible Runner job.
+
+    This function checks an in-memory dictionary (`jobs`) for the current status
+    of a job, identified by its unique job ID. The status is initially set
+    when the job is created and updated by the worker thread as the
+    Ansible Runner progresses through its lifecycle.
+
+    Args:
+        job_id (uuid.UUID): The unique identifier for the job.
+                            This typically comes from the API request.
+
+    Returns:
+        str: The current status of the job. Possible values include:
+             - "scheduled": The job has been accepted and is waiting to be processed
+                            by a worker thread. This is the initial state set when
+                            `create_multi_script_job` successfully schedules the job.
+             - "running": The job has been picked up by a worker thread and the
+                          Ansible Runner process (`runner.run()`) has started.
+                          This status is set by the `worker_func`.
+             - "successful": The Ansible Runner process completed successfully (typically
+                             implies a return code of 0). This is a final status.
+             - "failed": The Ansible Runner process completed with a non-zero return code,
+                         indicating one or more tasks in the playbook failed. This is a
+                         final status.
+             - "timeout": The job exceeded a timeout (if timeouts are configured in
+                          Ansible Runner or the playbook). This is a final status.
+             - "canceled": The job was canceled before it completed. This could happen
+                           if the `ThreadPoolExecutor` is shut down with `cancel_futures=True`
+                           while the job was still in a "scheduled" or "running" state
+                           but hadn't finished. This is a final status.
+             - "unreachable": While not directly set by your `JobInfo.set_status` explicitly
+                              with this string, if an Ansible playbook run results in all hosts
+                              being unreachable, the overall status might reflect this.
+                              Ansible Runner's `status` can be 'failed' in such cases too.
+                              It's good to be aware of Ansible's own terminology.
+             - "": An empty string is returned if the `job_id` is not found in the
+                   `jobs` dictionary. This indicates that either the job ID is invalid,
+                   the job never existed, or (less likely with current implementation)
+                   it was removed from tracking.
+
+    Note:
+        The specific set of status strings like "successful", "failed", "timeout",
+        and "canceled" are determined by the `status` attribute returned by
+        `ansible_runner.Runner.run()` and `ansible_runner.Runner.status`.
+        Refer to the Ansible Runner documentation for the definitive list of
+        these terminal statuses.
     '''
     status = ''
 
