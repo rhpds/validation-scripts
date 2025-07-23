@@ -13,4 +13,6 @@ else
   echo "Checking out ref ${GIT_REPO_REF}"
   git checkout ${GIT_REPO_REF}
 fi
+echo ${VAULT_PASSWORD} > /tmp/.vault
+export ANSIBLE_VAULT_PASSWORD_FILE=/tmp/.vault
 python /app/main.py
